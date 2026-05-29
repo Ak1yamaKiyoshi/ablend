@@ -15,7 +15,7 @@ while True:
   time.sleep(1/30)
 
   x, y, z = 0.0, 0.0, math.cos(i/20) + 1
-  roll, pitch, yaw = math.sin(i/10)*20, 0.0, 0.0
+  roll, pitch, yaw = 0.0, math.sin(i/10)*20, 0.0
   print(z)
   
   sock.sendto(struct.pack("!dddddd", roll, pitch, yaw, x, y, z), ("0.0.0.0", 6781))

@@ -57,7 +57,7 @@ def mainloop():
 def blender_update():
   drone = bpy.data.objects["Drone"]
   try:
-    roll, pitch, yaw, x, y, z = telemetry_queue.get_nowait()
+    pitch, roll, yaw, x, y, z = telemetry_queue.get_nowait()
     drone.location = (x, y, z)
     drone.rotation_euler = (math.radians(roll), math.radians(pitch), math.radians(yaw))
   except queue.Empty:
@@ -73,7 +73,7 @@ def server(q):
     while True:
       data,addr = sock.recvfrom(8*6) # 6 * d
       # todo: validate/split to separate commands 
-      # roll, pitch, yaw, x, y, z
+      # pitch, pitch, yaw, x, y, z
       data = struct.unpack("!dddddd", data)
       q.put(data)
 
