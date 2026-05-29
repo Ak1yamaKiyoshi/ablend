@@ -1,11 +1,18 @@
 import bpy
+import struct 
+import time
+import math 
+import threading 
+import socket 
+import queue 
+
 
 # use cam
 scene = bpy.context.scene
 cam = bpy.data.objects.get("DroneCamera")
 
 # camera settings
-cam.data.lens = 6.9 # mm 
+cam.data.lens = 15.0 # mm 
 cam.data.sensor_fit = 'VERTICAL' 
 cam.data.sensor_height = 60 # mm 
 scene.render.resolution_x = 1200
@@ -37,17 +44,6 @@ with bpy.context.temp_override(window=bpy.context.window, area=area):
     bpy.ops.screen.screen_full_area(use_hide_panels=True)
 
 
-import time
-import math 
-import threading 
-
-# def save_drone_render_on_update(drone):
-#     f = scene.frame_current + 1
-#     drone.keyframe_insert("location", frame=f)     # prev key at f-1 still exists
-#     scene.frame_set(f)
-#     scene.render.filepath = f"/tmp/frame_{f:05d}.png"
-#     bpy.ops.render.render(write_still=True)
-
 def mainloop():
   i = 0 
   while True:
@@ -55,10 +51,43 @@ def mainloop():
     time.sleep(1/60)
     drone = bpy.data.objects["Drone"]
     drone.location = (math.sin(i/10)*5, math.cos(i/10)*5, 5)
-    drone.rotation_euler = (math.sin(i/10)/2, 0.0, 0.0)   # x, y, z; degrees→radians
-    # save_drone_render_on_update(drone)
+    drone.rotation_euler = (math.sin(i/10)/2, 0.0, 0.0)
 
 
-t = threading.Thread(target=mainloop)
+def blender_update():
+  drone = bpy.data.objects["Drone"]
+  try:
+    roll, pitch, yaw, x, y, z = telemetry_queue.get_nowait()
+    drone.location = (x, y, z)
+    drone.rotation_euler = (math.radians(roll), math.radians(pitch), math.radians(yaw))
+  except queue.Empty:
+    pass
+  return 1/60 # time to sleep before next update
+
+
+def server(q):
+  sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  sock.bind(("0.0.0.0", 6781))
+
+  try:
+    while True:
+      data,addr = sock.recvfrom(8*6) # 6 * d
+      # todo: validate/split to separate commands 
+      # roll, pitch, yaw, x, y, z
+      data = struct.unpack("!dddddd", data)
+      q.put(data)
+
+  except Exception:
+    sock.close()
+  except KeyboardInterrupt:
+    sock.close()
+  finally: sock.close()
+
+telemetry_queue = queue.Queue(maxsize=5)
+bpy.app.timers.register(blender_update, ) # blender is not thread-safe, therefore timers needed.
+
+
+t = threading.Thread(target=server, args=(telemetry_queue,))
 t.start()
+
 
