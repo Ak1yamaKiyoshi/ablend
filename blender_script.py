@@ -12,11 +12,11 @@ scene = bpy.context.scene
 cam = bpy.data.objects.get("DroneCamera")
 
 # camera settings
-cam.data.lens = 15.0 # mm 
+cam.data.lens = 20.0 # mm 
 cam.data.sensor_fit = 'VERTICAL' 
-cam.data.sensor_height = 60 # mm 
-scene.render.resolution_x = 1200
-scene.render.resolution_y = 1000
+cam.data.sensor_height = 80 # mm 
+scene.render.resolution_x = 720
+scene.render.resolution_y = 400
 scene.camera = cam
 
 # switch to rendered 
@@ -27,8 +27,8 @@ bpy.context.scene.render.engine = 'BLENDER_EEVEE'
 space.region_3d.view_perspective = 'CAMERA'
 
 # renderer settings
-scene.render.use_motion_blur = True
-scene.render.motion_blur_shutter = 5.0   # length of blur; bigger = more
+scene.render.use_motion_blur = False
+scene.render.motion_blur_shutter = 0.0   # length of blur; bigger = more
 
 # camera zoom 
 cam.data.show_passepartout = True
@@ -48,7 +48,7 @@ def mainloop():
   i = 0 
   while True:
     i += 1
-    time.sleep(1/60)
+    time.sleep(1/80)
     drone = bpy.data.objects["Drone"]
     drone.location = (math.sin(i/10)*5, math.cos(i/10)*5, 5)
     drone.rotation_euler = (math.sin(i/10)/2, 0.0, 0.0)
@@ -62,7 +62,7 @@ def blender_update():
     drone.rotation_euler = (math.radians(roll), math.radians(pitch), math.radians(yaw))
   except queue.Empty:
     pass
-  return 1/60 # time to sleep before next update
+  return 1/80 # time to sleep before next update
 
 
 def server(q):

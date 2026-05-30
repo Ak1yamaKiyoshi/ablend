@@ -1,0 +1,5 @@
+param set ANGLE_MAX 6500
+param set SIM_WIND_SPD 5.0 
+param set SIM_WIND_DIR 0
+param set SIM_WIND_TURB 5.0
+
