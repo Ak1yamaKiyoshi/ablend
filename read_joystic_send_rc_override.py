@@ -9,6 +9,7 @@ from config import *
 # joystic found & setup
 found = None
 device = None
+# print(hid.enumerate())
 for device in hid.enumerate():
     if "TX12" in device["product_string"]:
         found = True
