@@ -1,0 +1,30 @@
+todo blender:
+
+blender script to:
+0. set resolution on render 
+1. change seeds of terrain particle system
+2. change car, car color, car rotation 
+3. change camera fov
+4. change hdri 
+5. GET EXACT OUTLINE OF CAR OBJECT IN CAMERA COORDINATES
+  * can be done using some buggy material with one exact color and select by color, render two files. 
+6. RENDER TO FILE 
+*image/object outline coordinates should be in coco? format for yolo to train from it right ahead. *
+7. set camera angle to target + camera distance from target 
+8. Set heat distortion effect 
+9. set lens blur effect 
+
+blender file:
+1. vertex groups for trees/bushes  on same terrain 
+2. Create few terrains: forest, asphalt road, dirt road, urban asphalt road, asphanlt near builidng 
+
+todo: 
+use same camera params as one or two of samsung galaxy s24 cameras. So checkpoint would be usable oduring inference on phone. 
+
+
+
+v1:
+place car at center and change camera rotation + distance and overfit like that 
+car rotation/color change. 
+v2:
+
