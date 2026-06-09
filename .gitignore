@@ -1,0 +1,4 @@
+*env*
+*__pycache__*
+*.blend1
+*.tar.xz

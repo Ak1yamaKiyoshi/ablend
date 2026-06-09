@@ -1,0 +1,5 @@
+00:00.407  blend            | Read blend: "/home/akiyama/proj/blender-automated/src/blender_scenes/scene-simple.blend"
+register_class(...):
+Warning: 'AntDisplaceSettingsPanel' does not contain '_PT_' with prefix and suffix
+00:00.704  gpu.texture      | ERROR Failed to create GPU texture from Blender image
+00:00.705  gpu.texture      | ERROR Failed to create GPU texture from Blender image
