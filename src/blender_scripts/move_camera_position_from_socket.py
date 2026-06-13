@@ -44,21 +44,11 @@ with bpy.context.temp_override(window=bpy.context.window, area=area):
     bpy.ops.screen.screen_full_area(use_hide_panels=True)
 
 
-def mainloop():
-  i = 0 
-  while True:
-    i += 1
-    time.sleep(1/80)
-    drone = bpy.data.objects["DroneCamera"]
-    drone.location = (math.sin(i/10)*5, math.cos(i/10)*5, 5)
-    drone.rotation_euler = (math.sin(i/10)/2, 0.0, 0.0)
-
-
 def blender_update():
   drone = bpy.data.objects["DroneCamera"]
   try:
     pitch, roll, yaw, x, y, z = telemetry_queue.get_nowait()
-    drone.location = (x, y, z)
+    drone.location = (x, y, -z)
     drone.rotation_euler = (math.radians(roll), math.radians(pitch), math.radians(yaw))
   except queue.Empty:
     pass

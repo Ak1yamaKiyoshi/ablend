@@ -3,7 +3,7 @@ import struct
 
 found = None
 for device in hid.enumerate():
-  if "TX12" in device['product_string']:
+  if "Radiomaster Pocket" in device['product_string']:
     found = device['vendor_id'], device['product_id']
     break
 
