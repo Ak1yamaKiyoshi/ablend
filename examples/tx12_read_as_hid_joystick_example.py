@@ -1,0 +1,31 @@
+import struct
+
+import hid
+
+found = False
+device = None
+
+for device in hid.enumerate():
+    p_string = device.get("product_string", "")
+    if p_string and (
+        "TX12" in p_string or "Radiomaster" in p_string or "Joystick" in p_string
+    ):
+        found = True
+        break
+
+if not found:
+    print("Joystick not found")
+    exit()
+
+tx12 = hid.Device(device["vendor_id"], device["product_id"])
+
+while True:
+    data = tx12.read(64)
+    btn1, btn2, btn3, x, y, z, rx, ry, rz, s1, s2 = struct.unpack("<BBBHHHHHHHH", data)
+    axes = [x, y, z, rx, ry, rz, s1, s2]
+    axes_norm = [(val - 1024) / 1024.0 for val in axes]  # -1.0 to +1.0
+
+    print(f"Axes norm    : {[f'{a:.3f}' for a in axes_norm]}")
+    print(
+        f"Buttons high : {bin(btn1)[2:].zfill(8)} {bin(btn2)[2:].zfill(8)} {bin(btn3)[2:].zfill(8)}"
+    )

@@ -1,7 +1,7 @@
 param set ANGLE_MAX 4500
-param set SIM_WIND_SPD 5.0
+param set SIM_WIND_SPD 0.0
 param set SIM_WIND_DIR 180
-param set SIM_WIND_TURB 5.0
+param set SIM_WIND_TURB 0.0
 
 
 # betaflight vibes
