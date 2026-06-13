@@ -3,7 +3,6 @@ param set SIM_WIND_SPD 0.0
 param set SIM_WIND_DIR 180
 param set SIM_WIND_TURB 0.0
 
-
 # betaflight vibes
 param set ACRO_BAL_ROLL 0.0
 param set ACRO_BAL_PITCH 0.0

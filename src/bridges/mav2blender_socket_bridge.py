@@ -1,8 +1,11 @@
 import math
 import socket
 import struct
+import time
 
 from pymavlink import mavutil
+
+from config import BASE_DIR, BLENDER_HOST, MAVLINK_BRIDGE_PORT, TELEMETRY_PORT
 
 
 def set_interval(master, message_id, frequency_hz):
@@ -22,48 +25,53 @@ def set_interval(master, message_id, frequency_hz):
     )
 
 
-conn_str = "127.0.0.1:14560"
-master = mavutil.mavlink_connection(conn_str)
+master = mavutil.mavlink_connection(MAVLINK_BRIDGE_PORT)
 master.wait_heartbeat()
-print("[Bridge]: Heartbeat done")
+print("[Bridge] Heartbeat OK")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-addr = ("127.0.0.1", 6781)
 
 set_interval(master, mavutil.mavlink.MAVLINK_MSG_ID_LOCAL_POSITION_NED, 20)
 set_interval(master, mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, 20)
-print("Requested first msg successfully")
+print("[Bridge] Message intervals set")
 
+x = y = z = roll = pitch = yaw = 0.0
+last_send = 0.0
+send_interval = 1.0 / 20
 
 try:
-    x, y, z, roll_rad, pitch_rad, yaw_rad = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     while True:
         msg = master.recv_match(
             type=["LOCAL_POSITION_NED", "AHRS2"], blocking=True, timeout=1.0
         )
         if msg is None:
             continue
+
         if msg._type == "LOCAL_POSITION_NED":
             x, y, z = msg.x, msg.y, -msg.z
             print("NED\n", msg)
 
         elif msg._type == "AHRS2":
-            roll_rad, pitch_rad, yaw_rad = msg.roll, msg.pitch, msg.yaw
+            roll = math.degrees(msg.roll)
+            pitch = math.degrees(msg.pitch)
+            yaw = math.degrees(msg.yaw)
             print("AHRS\n", msg)
 
-        sock.sendto(
-            struct.pack(
-                "!" + "d" * 6,
-                math.degrees(roll_rad),
-                math.degrees(pitch_rad),
-                math.degrees(yaw_rad),
-                x,
-                y,
-                z,
-            ),
-            addr,
-        )
+        now = time.monotonic()
+        if now - last_send >= send_interval:
+            sock.sendto(
+                struct.pack(
+                    "!" + "d" * 6,
+                    roll,
+                    pitch,
+                    yaw,
+                    x,
+                    y,
+                    z,
+                ),
+                (BLENDER_HOST, TELEMETRY_PORT),
+            )
 except KeyboardInterrupt:
     if "master" in locals():
         master.close()
-        print("MAVLink connection closed.")
+        print("[Bridge] Closed.")

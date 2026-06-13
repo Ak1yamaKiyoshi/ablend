@@ -2,16 +2,18 @@ import time
 
 from pymavlink import mavutil
 
+from config import MAVLINK_CTRL_PORT
 
-def set_interval(message_id, frequency_hz):
-    rate_ms = int(1e6 / frequency_hz)
+
+def set_interval(master, message_id, frequency_hz):
+    rate_us = int(1e6 / frequency_hz)
     master.mav.command_long_send(
         master.target_system,
         master.target_component,
         mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
         0,
         message_id,
-        rate_ms,
+        rate_us,
         0,
         0,
         0,
@@ -19,12 +21,14 @@ def set_interval(message_id, frequency_hz):
         0,
     )
 
+
+def arm(master):
     master.mav.command_long_send(
         master.target_system,
         master.target_component,
         mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
         0,
-        1,  # 1 - Arm; 0 - Disarm
+        1,
         0,
         0,
         0,
@@ -32,37 +36,31 @@ def set_interval(message_id, frequency_hz):
         0,
         0,
     )
+    print("[Ctrl] Armed")
 
-    print("Armed")
 
-
-conn_str = "udp:127.0.0.1:14561"
-master = mavutil.mavlink_connection(conn_str)
+master = mavutil.mavlink_connection(MAVLINK_CTRL_PORT)
 master.wait_heartbeat()
-print("Heartbeat done")
+print("[Ctrl] Heartbeat OK")
 
-set_interval(mavutil.mavlink.MAVLINK_MSG_ID_LOCAL_POSITION_NED, 20)
-print("Requested first msg successfully")
+set_interval(master, mavutil.mavlink.MAVLINK_MSG_ID_LOCAL_POSITION_NED, 20)
+arm(master)
 
 tstart = time.time()
-
+x, y, z = 0.0, 0.0, 0.0
+start_x = start_y = start_z = 0.0
+target = 10
 
 try:
-    x, y, z = 0.0, 0.0, 0.0
-    msg = master.recv_match(type=["LOCAL_POSITION_NED"], blocking=True)
-    start_x, start_y, start_z = msg.x, msg.y, msg.z
-
-    target = 10
-
     while True:
         msg = master.recv_match(type=["LOCAL_POSITION_NED"], blocking=True)
-        x, y, z = msg.x, msg.y, msg.z
+        x, y, z = msg.x, msg.y, -msg.z
 
         error = target + z
         error_sign = error / abs(error)
         throttle = int(1500 + 50 * error_sign)
+        print(f"[Ctrl] Error={error}")
 
-        print(error)
         master.mav.rc_channels_override_send(
             master.target_system,
             master.target_component,
@@ -76,11 +74,7 @@ try:
             0,
         )
 
-        if time.time() - tstart > 0.1:
-            set_interval(mavutil.mavlink.MAVLINK_MSG_ID_LOCAL_POSITION_NED, 30)
-            tstart = time.time()
 
 except KeyboardInterrupt:
-    if "master" in locals():
-        master.close()
-        print("MAVLink connection closed.")
+    master.close()
+    print("MAVLink connection closed.")

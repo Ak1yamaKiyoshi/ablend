@@ -1,8 +1,18 @@
-
 import subprocess
-from config import blender_path, scene_path, script_path
-import os 
 
-proc = subprocess.run([blender_path, scene_path, "--python", script_path, "-w", "-p", "0", "0", "1280", "720"])
+from config import BASE_DIR, BLENDER_PATH, SCENE_PATH, SCRIPT_PATH
 
-
+proc = subprocess.run(
+    [
+        str(BLENDER_PATH),
+        str(SCENE_PATH),
+        "--python",
+        str(SCRIPT_PATH),
+        "-w",
+        "-p",
+        "0",
+        "0",
+        "1920",
+        "1200",
+    ]
+)

@@ -1,39 +1,36 @@
-This is dev brunch. As the tests are in process, do not try to understand what is going on. 
-Test in process as in ubuntu as in fedora, in future will be structured better
+## This is dev brunch
 
-### setup 
-Symlink your blender to submodules/ directory
+### Setup 
+
+#### Symlink your blender to submodules/ directory
 - `ln -s /path/to/original_target /path/to/symlink_shortcut`
-- `ln -s ~/bin/blender ./blender`
+- `ln -s /usr/bin/blender submodules/blender`
 
 #### Create env
 - `python3 -m venv env`
 - `source env/bin/activate`
 
-#### Clone Ardupilot to "submodules/"
+#### Clone Ardupilot to "submodules"
 - `cd submodules`
 - `git clone https://github.com/ArduPilot/ardupilot.git`
 - `git checkout Copter-4.6.3`
 - `git submodule update --init --recursive`
 - `pip install empy==3.3.4 future numpy pexpect pymavlink mavproxy`
 
-##### if ubuntu:
+##### If ubuntu:
 `ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh`
 
-##### Install gcc15 if you have gcc16 only
+##### If Fedora:
+Install gcc15 if you have gcc16 only
+
 For GCC 16 support check `https://github.com/ArduPilot/ardupilot/pull/32984`
-```
-sudo dnf install gcc15 gcc15-c++
-```
-```
-pip install -U pip packaging setuptools wheel
-pip install -U future lxml pymavlink pyserial MAVProxy geocoder \
-  empy==3.3.4 ptyprocess dronecan flake8 junitparser \
-  numpy pyparsing psutil intelhex
-```
+
+- `sudo dnf install gcc15 gcc15-c++`
+- `pip install -U pip packaging setuptools wheel`
+- `pip install -U future lxml pymavlink pyserial MAVProxy geocoder empy==3.3.4 ptyprocess dronecan flake8 junitparser numpy pyparsing psutil intelhex hid`
 
 ##### if python 3.14.3 (pkg_resources deprecated, dronecan errors)
-`pip install "setuptools<81"`
+- `pip install "setuptools<81"`
 
 #### build waf structurised
 if gcc16/15 installed, and 16 is not yet supported:
@@ -50,18 +47,14 @@ Then:
 add symlink 
 - `ln -s Tools/autotest/sim_vehicle.py`
 
-### Install hid
----in process
-
 ### run 
-Launch blender (which already has socket open) with:
+Launch blender with:
 - `python3 launch_blender.py`
 
-Launch ardupilot sitl 
+Launch ardupilot sitl with:
 - `cd ./submodules/ardupilot/`
-- `python3 Tools/autotest/sim_vehicle.py --console -v ArduCopter --out=udp:127.0.0.1:14560 --out=udp:127.0.0.1:14561`
+- `./launch_sitl.sh`
+- `set streamrate 20`
 
-or 
-`./launch_sitl.sh`
-`python3 src/bridges/mav2blender_socket_bridge.py`
-`python3 launch_blender.py`
+Launch bridge with:
+- `python3 src/bridges/mav2blender_socket_bridge.py`
