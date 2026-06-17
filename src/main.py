@@ -4,10 +4,11 @@ import struct
 import threading
 import time
 
+import scipy.linalg
 import hid
 import pymavlink
+import numpy as np
 from pymavlink import mavutil
-
 
 def initialize_rc_joystic():
     found = None
@@ -30,8 +31,6 @@ def read_rc_joystic(rc_joystic):
         int(round((val - 1024) / 1024.0, 3) * 500 + 1500) for val in axes
     ]  # -1.0 to +1.0
     axes_norm[1] = (axes_norm[1] - 1500)*-1+1500
-    
-
     return axes_norm
 
 
@@ -84,8 +83,6 @@ def read_mavlink_messages(mav_conn, ned_container, attitude_container):
                 attitude_container[0] = msg.roll, msg.pitch, msg.yaw, time.time()
 
 
-
-
 def send_position_orientation_to_blender(
     sock, addr, ned_container, attitude_container, hz=30
 ):
@@ -116,14 +113,12 @@ def send_position_orientation_to_blender(
         tstart = time.perf_counter()
 
 
-
 if __name__ == "__main__":
     state = {
         "rc_channels": [[1500, 1000, 1500, 1500, 1000, 1000, 1000, 1000]],  # pwm
         "attitude_rpy": [[0.0, 0.0, 0.0, 0.0]], # r, p, y, time   # rad
         "ned_xyz_vxvyvz": [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], # r, p, y, time  # m, m/s
     }
-
 
     print("Initialize rc")
     rc = initialize_rc_joystic()
@@ -138,7 +133,8 @@ if __name__ == "__main__":
     mavlink_messages_with_hz_to_request = [
         (mavutil.mavlink.MAVLINK_MSG_ID_LOCAL_POSITION_NED, 100),
         (mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 100),
-    ]
+    ] # mavproxy streamrate = 100
+    
     conn_str = "127.0.0.1:14560"
     master = mavutil.mavlink_connection(conn_str)
     master.wait_heartbeat()
@@ -164,16 +160,65 @@ if __name__ == "__main__":
     send_position_orientation_to_blender_thread.start()
     print("Blender udp socket initialized.")
 
+    # Mavlink/RC/Blender initialisation done 
+    
+    time.sleep(1)
+
+    master.mav.rc_channels_override_send(
+        master.target_system, master.target_component, 
+        1500, 1500, 1000, 1500, 0, 0, 0, 0
+    )
+
+    time.sleep(0.1)
+
+    master.mav.command_long_send(
+        master.target_system, master.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        0, 
+        1.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    )
+
+    time.sleep(0.5)
+
+    target_dt = 1/70
+    tstart = time.perf_counter()
+    tcur = time.perf_counter()
+
+
+    x_state = np.array([0.0, 0.0]) # z, vz 
+    a = np.array([ [1, target_dt], [0, 1] ])
+    b = np.array([[(target_dt*target_dt)/2], [target_dt]])
+    q = np.array([[10.0, 0.0], [0.0, 0.1]]) # cost matrix 
+    r = np.array([1])
+    
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.solve_discrete_are.html
+    p = scipy.linalg.solve_discrete_are(a, b, q, r)
+    k = np.linalg.inv(r + b.T @ p @ b) @ (b.T @ p @ a) # todo: understand 
+
+    target_z = -40 # ned 
 
     while True:
-        time.sleep(1 / 100)
-        print(state["rc_channels"][0], state["attitude_rpy"])
+        tcur = time.perf_counter()
+        dt = tcur - tstart
+        if dt < target_dt:
+            time.sleep(target_dt - dt) 
+        x, y, z, vx, vy, vz, _ = state['ned_xyz_vxvyvz'][0]
+        
+        e_1 = (z - target_z)
+        e_2 = (vz - 0.0)
 
-        if state['rc_channels'][0][6] > 1800:
-            master.mav.rc_channels_override_send(
-                master.target_system, master.target_component, 
-                state["rc_channels"][0][0], state["rc_channels"][0][1], state["rc_channels"][0][2], state["rc_channels"][0][3], 0, 0, 0, 0
-            )
+        error = np.array([e_1, e_2])
+        
+        cmd_raw = (-k @ error)
+        cmd = -max(-1.0, min(1.0, cmd_raw[0])) / 1.0 
+        pwm_out = int(1500 + (cmd * 500.0))
 
-
+        master.mav.rc_channels_override_send(
+            master.target_system, master.target_component, 
+            1500, 1500, pwm_out, 1500, 0, 0, 0, 0
+        )
+        print(f"lqr: cmd: {cmd:5.2f}, pwm: {pwm_out:05d}, (err z): {e_1:5.3f}, (err vz): {e_2: 5.3f}, cmd raw {cmd_raw[0]:5.3f}")
+        
+        tstart = time.perf_counter()
         
